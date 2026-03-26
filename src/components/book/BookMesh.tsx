@@ -30,15 +30,15 @@ function makePageForeEdgeTex(pageColor: string): THREE.CanvasTexture {
   ctx.fillStyle = pageColor
   ctx.fillRect(0, 0, w, h)
 
-  const lineCount = 220
+  const lineCount = 180
   const step = w / lineCount
   for (let i = 0; i < lineCount; i++) {
     const x = Math.round(i * step)
-    const v = 90 + Math.random() * 6
-    ctx.fillStyle = `hsl(35, 12%, ${v}%)`
-    ctx.fillRect(x, 0, Math.max(1, Math.round(step * 0.65)), h)
-    ctx.fillStyle = 'rgba(0,0,0,0.08)'
-    ctx.fillRect(x + Math.round(step * 0.65), 0, 1, h)
+    const v = 68 + Math.random() * 18
+    ctx.fillStyle = `hsl(35, 14%, ${v}%)`
+    ctx.fillRect(x, 0, Math.max(1, Math.round(step * 0.62)), h)
+    ctx.fillStyle = 'rgba(0,0,0,0.58)'
+    ctx.fillRect(x + Math.round(step * 0.62), 0, Math.max(1, Math.round(step * 0.38)), h)
   }
 
   const tex = new THREE.CanvasTexture(canvas)
@@ -62,15 +62,15 @@ function makePageTopEdgeTex(pageColor: string): THREE.CanvasTexture {
   ctx.fillStyle = pageColor
   ctx.fillRect(0, 0, w, h)
 
-  const lineCount = 220
+  const lineCount = 180
   const step = h / lineCount
   for (let i = 0; i < lineCount; i++) {
     const y = Math.round(i * step)
-    const v = 90 + Math.random() * 6
-    ctx.fillStyle = `hsl(35, 12%, ${v}%)`
-    ctx.fillRect(0, y, w, Math.max(1, Math.round(step * 0.65)))
-    ctx.fillStyle = 'rgba(0,0,0,0.08)'
-    ctx.fillRect(0, y + Math.round(step * 0.65), w, 1)
+    const v = 68 + Math.random() * 18
+    ctx.fillStyle = `hsl(35, 14%, ${v}%)`
+    ctx.fillRect(0, y, w, Math.max(1, Math.round(step * 0.62)))
+    ctx.fillStyle = 'rgba(0,0,0,0.58)'
+    ctx.fillRect(0, y + Math.round(step * 0.62), w, Math.max(1, Math.round(step * 0.38)))
   }
 
   const tex = new THREE.CanvasTexture(canvas)
