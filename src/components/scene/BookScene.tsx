@@ -29,7 +29,8 @@ function CameraSync() {
 function ExportBridge() {
   const { gl, scene, camera } = useThree()
   const trigger = useExportTriggerStore((s) => s.trigger)
-  const prevTrigger = useRef(0)
+  // Initialize to the CURRENT trigger so Suspense remounts don't re-fire a stale export
+  const prevTrigger = useRef(trigger)
 
   useEffect(() => {
     if (trigger <= prevTrigger.current) return
@@ -46,30 +47,33 @@ function ExportBridge() {
     const origW = gl.domElement.clientWidth
     const origH = gl.domElement.clientHeight
 
-    // Save renderer state before export
     const origClearColor = new THREE.Color()
-    const origClearAlpha = gl.getClearAlpha()
     gl.getClearColor(origClearColor)
     const origBackground = scene.background
 
-    gl.setSize(targetW, targetH, false)
-    if (export_.transparentBackground) {
-      scene.background = null
-      gl.setClearColor(0x000000, 0)
+    let dataUrl: string | null = null
+    try {
+      gl.setSize(targetW, targetH, false)
+      if (export_.transparentBackground) {
+        scene.background = null
+        gl.setClearColor(0x000000, 0)
+      }
+      gl.render(scene, camera)
+      dataUrl = gl.domElement.toDataURL('image/png')
+    } finally {
+      // Always restore — even if toDataURL throws (e.g. CORS-tainted canvas)
+      gl.setSize(origW, origH, false)
+      // Force alpha=1 so the live canvas never becomes transparent
+      gl.setClearColor(origClearColor, 1)
+      scene.background = origBackground
     }
-    gl.render(scene, camera)
 
-    const dataUrl = gl.domElement.toDataURL('image/png')
-
-    // Restore renderer state
-    gl.setSize(origW, origH, false)
-    gl.setClearColor(origClearColor, origClearAlpha)
-    scene.background = origBackground
-
-    const a = document.createElement('a')
-    a.href = dataUrl
-    a.download = `book-mockup-${Date.now()}.png`
-    a.click()
+    if (dataUrl) {
+      const a = document.createElement('a')
+      a.href = dataUrl
+      a.download = `book-mockup-${Date.now()}.png`
+      a.click()
+    }
   }, [trigger, gl, scene, camera])
 
   return null
