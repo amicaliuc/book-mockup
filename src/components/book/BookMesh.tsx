@@ -137,10 +137,12 @@ function SpineWithTexture({ url, geo, position, rotation, finish, roughness, met
 }) {
   const texture = useTexture(url)
   texture.colorSpace = THREE.SRGBColorSpace
+  // Faces with texture: 5 = outward spine face, 2 = top (+y), 3 = bottom (-y)
+  // Faces 0/1 (front/back cover edges) are hidden by cover geometry; face 4 (right) hidden by page block
   return (
     <mesh geometry={geo} position={position} rotation={rotation}>
       {[0, 1, 2, 3, 4, 5].map(i =>
-        i === 5
+        [2, 3, 5].includes(i)
           ? finish === 'original'
             ? <meshBasicMaterial key={i} attach={`material-${i}`} map={texture} />
             : <meshStandardMaterial key={i} attach={`material-${i}`} map={texture} roughness={roughness} metalness={metalness} />
