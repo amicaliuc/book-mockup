@@ -13,8 +13,6 @@ import {
 
 const FALLBACK_COLOR = '#e8e0d8'
 const COVER_THICKNESS = 0.005
-// Edge/side faces of cover and spine boxes — never use the cover texture, always plain dark
-const EDGE_COLOR = '#1c1a18'
 
 /**
  * Fore-edge texture (right side, +x face of page block).
@@ -95,8 +93,8 @@ function makePageTopEdgeTex(pageColor: string): THREE.CanvasTexture {
 
 function edgeMat(finish: CoverFinish, i: number) {
   return finish === 'original'
-    ? <meshBasicMaterial key={i} attach={`material-${i}`} color={EDGE_COLOR} />
-    : <meshStandardMaterial key={i} attach={`material-${i}`} color={EDGE_COLOR} roughness={0.9} metalness={0} />
+    ? <meshBasicMaterial key={i} attach={`material-${i}`} color={FALLBACK_COLOR} />
+    : <meshStandardMaterial key={i} attach={`material-${i}`} color={FALLBACK_COLOR} roughness={0.8} metalness={0} />
 }
 
 /** Cover mesh with uploaded texture — texture only on the outward face, edges are plain dark. */
