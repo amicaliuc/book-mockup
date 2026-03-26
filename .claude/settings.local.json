@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create:*)",
+      "Bash(printf 'y\\\\n')",
+      "Bash(npx create-vite@latest . --template react-ts)",
+      "Bash(npx create-vite@latest temp-scaffold --template react-ts)",
+      "Bash(cp -r temp-scaffold/. .)",
+      "Bash(rm -rf temp-scaffold)",
+      "Bash(npm install:*)",
+      "Bash(npx tailwindcss:*)",
+      "Bash(./node_modules/.bin/tailwindcss init:*)",
+      "Bash(node -e \"const pkg = require\\(''./node_modules/tailwindcss/package.json''\\); console.log\\(pkg.version\\)\")",
+      "Bash(node node_modules/tailwindcss/lib/cli.js init -p)",
+      "Bash(npm run:*)"
+    ]
+  }
+}
