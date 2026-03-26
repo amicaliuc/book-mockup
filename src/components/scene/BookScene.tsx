@@ -44,31 +44,65 @@ function ExportBridge() {
 
     const targetW = base.width * multiplier
     const targetH = base.height * multiplier
-    const origW = gl.domElement.clientWidth
-    const origH = gl.domElement.clientHeight
-
-    const origClearColor = new THREE.Color()
-    gl.getClearColor(origClearColor)
-    const origBackground = scene.background
 
     let dataUrl: string | null = null
     try {
-      gl.setSize(targetW, targetH, false)
+      // Render into an off-screen WebGLRenderTarget — the live canvas is never
+      // resized or cleared, so the live view is completely unaffected.
+      const rt = new THREE.WebGLRenderTarget(targetW, targetH, {
+        format: THREE.RGBAFormat,
+        type: THREE.UnsignedByteType,
+      })
+
+      // Temporarily adjust camera aspect to match export dimensions
+      const origAspect = camera instanceof THREE.PerspectiveCamera ? camera.aspect : null
+      if (camera instanceof THREE.PerspectiveCamera) {
+        camera.aspect = targetW / targetH
+        camera.updateProjectionMatrix()
+      }
+
+      // Handle transparent background
+      const origBackground = scene.background
+      const origClearColor = new THREE.Color()
+      const origClearAlpha = gl.getClearAlpha()
+      gl.getClearColor(origClearColor)
       if (export_.transparentBackground) {
         scene.background = null
         gl.setClearColor(0x000000, 0)
       }
+
+      // Render to off-screen target (does NOT touch the live canvas buffer)
+      gl.setRenderTarget(rt)
+      gl.clear()
       gl.render(scene, camera)
-      dataUrl = gl.domElement.toDataURL('image/png')
-    } catch (e) {
-      // Swallow — do NOT let this propagate out of useEffect.
-      // An uncaught error inside useEffect unmounts the entire React tree (blank page).
-      console.warn('[Export] Canvas capture failed:', e)
-    } finally {
-      // Always restore regardless of success or failure
-      gl.setSize(origW, origH, false)
-      gl.setClearColor(origClearColor, 1)
+      gl.setRenderTarget(null)
+
+      // Restore all state immediately after render
       scene.background = origBackground
+      gl.setClearColor(origClearColor, origClearAlpha)
+      if (origAspect !== null && camera instanceof THREE.PerspectiveCamera) {
+        camera.aspect = origAspect
+        camera.updateProjectionMatrix()
+      }
+
+      // Read pixels from the render target (WebGL origin is bottom-left, flip Y)
+      const pixels = new Uint8Array(targetW * targetH * 4)
+      gl.readRenderTargetPixels(rt, 0, 0, targetW, targetH, pixels)
+      rt.dispose()
+
+      const flipped = new Uint8ClampedArray(targetW * targetH * 4)
+      for (let y = 0; y < targetH; y++) {
+        const src = (targetH - 1 - y) * targetW * 4
+        flipped.set(pixels.subarray(src, src + targetW * 4), y * targetW * 4)
+      }
+
+      const canvas2d = document.createElement('canvas')
+      canvas2d.width = targetW
+      canvas2d.height = targetH
+      canvas2d.getContext('2d')!.putImageData(new ImageData(flipped, targetW, targetH), 0, 0)
+      dataUrl = canvas2d.toDataURL('image/png')
+    } catch (e) {
+      console.warn('[Export] Failed:', e)
     }
 
     if (dataUrl) {
@@ -93,7 +127,7 @@ export function BookScene() {
         near: camera.near,
         far: camera.far,
       }}
-      gl={{ preserveDrawingBuffer: true, alpha: true }}
+      gl={{ alpha: true }}
       className="w-full h-full"
     >
       <Suspense fallback={null}>
