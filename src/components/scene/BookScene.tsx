@@ -126,7 +126,7 @@ export function BookScene() {
         near: camera.near,
         far: camera.far,
       }}
-      gl={{ alpha: true }}
+
       className="w-full h-full"
     >
       <Suspense fallback={null}>
