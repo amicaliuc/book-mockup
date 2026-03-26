@@ -80,24 +80,11 @@ function makePageTopEdgeTex(pageColor: string): THREE.CanvasTexture {
 }
 
 /**
- * BoxGeometry face indices (Three.js standard):
- *   0=+x  1=-x  2=+y  3=-y  4=+z(front)  5=-z(back)
- *
- * After rotation [0,π,0] (back cover): face 5 (-z local) faces +z world (outward).
- * After rotation [0,π/2,0] (flat spine): face 5 (-z local) faces -x world (outward spine face).
- * No rotation (front cover): face 4 (+z local) faces +z world (outward).
- *
- * Edge faces (0–3 for cover sides, all non-texture faces for spine) must never show
- * the texture — use a plain dark color to eliminate the bright-edge artifact.
+ * Single-material cover mesh. With BoxGeometry, all 6 faces share the same texture/color.
+ * The edge faces (COVER_THICKNESS = 0.005) are so thin that the squished texture reads as
+ * the dominant cover color — dark texture → dark edges, light texture → light edges.
+ * No fixed-color edge stripe can appear.
  */
-
-function edgeMat(finish: CoverFinish, i: number) {
-  return finish === 'original'
-    ? <meshBasicMaterial key={i} attach={`material-${i}`} color={FALLBACK_COLOR} />
-    : <meshStandardMaterial key={i} attach={`material-${i}`} color={FALLBACK_COLOR} roughness={0.8} metalness={0} />
-}
-
-/** Cover mesh with uploaded texture — texture only on the outward face, edges are plain dark. */
 function CoverWithTexture({ url, geo, position, rotation, finish, roughness, metalness }: {
   url: string
   geo: THREE.BufferGeometry
@@ -109,23 +96,17 @@ function CoverWithTexture({ url, geo, position, rotation, finish, roughness, met
 }) {
   const texture = useTexture(url)
   texture.colorSpace = THREE.SRGBColorSpace
-  // front cover (no rotation) → face 4; back cover (rotation Y=π) → face 5
-  const texFace = rotation ? 5 : 4
   return (
     <mesh geometry={geo} position={position} rotation={rotation}>
-      {[0, 1, 2, 3, 4, 5].map(i =>
-        i === texFace
-          ? finish === 'original'
-            ? <meshBasicMaterial key={i} attach={`material-${i}`} map={texture} />
-            : <meshStandardMaterial key={i} attach={`material-${i}`} map={texture} roughness={roughness} metalness={metalness} />
-          : edgeMat(finish, i)
-      )}
+      {finish === 'original'
+        ? <meshBasicMaterial map={texture} />
+        : <meshStandardMaterial map={texture} roughness={roughness} metalness={metalness} />
+      }
     </mesh>
   )
 }
 
-/** Spine mesh with uploaded texture — single material so all faces (including visible edges and
- *  CylinderGeometry group 0) correctly receive the texture without per-face indexing issues. */
+/** Single-material spine mesh — works for both BoxGeometry (flat/hard) and CylinderGeometry (rounded). */
 function SpineWithTexture({ url, geo, position, rotation, finish, roughness, metalness }: {
   url: string
   geo: THREE.BufferGeometry
@@ -147,6 +128,17 @@ function SpineWithTexture({ url, geo, position, rotation, finish, roughness, met
   )
 }
 
+function coverFallback(color: string, geo: THREE.BufferGeometry, position: [number,number,number], rotation: [number,number,number] | undefined, finish: CoverFinish, roughness: number, metalness: number) {
+  return (
+    <mesh geometry={geo} position={position} rotation={rotation}>
+      {finish === 'original'
+        ? <meshBasicMaterial color={color} />
+        : <meshStandardMaterial color={color} roughness={roughness} metalness={metalness} />
+      }
+    </mesh>
+  )
+}
+
 export function BookMesh() {
   const book = useBookStore((s) => s.book)
   const material = useBookStore((s) => s.material)
@@ -163,9 +155,6 @@ export function BookMesh() {
       const { geo, xCenter } = createRoundedSpineGeometry(book)
       return { spineGeo: geo as THREE.BufferGeometry, spineX: xCenter }
     }
-    // Flat/hardcover: center the spine so its right edge aligns with the page block left face,
-    // completely covering the gap that would otherwise expose the white page block face.
-    // spineThickness = pageInset + COVER_THICKNESS/2  →  right edge = -width/2 + pageInset
     const spineX = -book.width / 2 + book.pageInset / 2 - COVER_THICKNESS / 4
     if (book.spineStyle === 'hardcover') {
       return { spineGeo: createHardcoverSpineGeometry(book) as THREE.BufferGeometry, spineX }
@@ -181,14 +170,13 @@ export function BookMesh() {
   )
   const foreEdgeTex = useMemo(() => makePageForeEdgeTex(book.pageColor), [book.pageColor])
   const topEdgeTex = useMemo(() => makePageTopEdgeTex(book.pageColor), [book.pageColor])
-  // Roughness comes directly from the material slider (finish dropdown sets a preset value via UI)
+
   const coverRoughness = material.coverRoughness
   const { coverFinish } = material
 
   const coverZ: [number, number, number] = [0, 0, book.depth / 2 + COVER_THICKNESS / 2 + 0.001]
   const backZ: [number, number, number] = [0, 0, -(book.depth / 2 + COVER_THICKNESS / 2 + 0.001)]
   const spinePos: [number, number, number] = [spineX, 0, 0]
-  // Flat and hardcover rotate 90° around Y; rounded cylinder already faces the right direction
   const spineRot: [number, number, number] = book.spineStyle === 'rounded' ? [0, 0, 0] : [0, Math.PI / 2, 0]
 
   return (
@@ -197,7 +185,7 @@ export function BookMesh() {
       <mesh geometry={pageGeo}>
         {/* +x fore-edge: vertical page lines */}
         <meshStandardMaterial attach="material-0" map={foreEdgeTex} color={book.pageColor} roughness={book.pageRoughness} />
-        {/* -x spine side: dark binding edge — covered by spine in real books, never page-white */}
+        {/* -x spine side: dark binding edge — covered by spine in real books */}
         <meshStandardMaterial attach="material-1" color="#1e1510" roughness={0.9} metalness={0} />
         {/* +y top edge: page lines looking from above */}
         <meshStandardMaterial attach="material-2" map={topEdgeTex} color={book.pageColor} roughness={book.pageRoughness} />
@@ -209,17 +197,9 @@ export function BookMesh() {
         <meshStandardMaterial attach="material-5" color={book.pageColor} roughness={book.pageRoughness} />
       </mesh>
 
-      {/* Front cover — face 4 (+z) is the outward face */}
+      {/* Front cover */}
       {book.coverImageUrl ? (
-        <Suspense fallback={
-          <mesh geometry={coverGeo} position={coverZ}>
-            {[0,1,2,3,5].map(i => edgeMat(coverFinish, i))}
-            {coverFinish === 'original'
-              ? <meshBasicMaterial attach="material-4" color={FALLBACK_COLOR} />
-              : <meshStandardMaterial attach="material-4" color={FALLBACK_COLOR} roughness={coverRoughness} metalness={material.coverMetalness} />
-            }
-          </mesh>
-        }>
+        <Suspense fallback={coverFallback(FALLBACK_COLOR, coverGeo, coverZ, undefined, coverFinish, coverRoughness, material.coverMetalness)}>
           <CoverWithTexture
             url={book.coverImageUrl}
             geo={coverGeo}
@@ -230,27 +210,13 @@ export function BookMesh() {
           />
         </Suspense>
       ) : (
-        <mesh geometry={coverGeo} position={coverZ}>
-          {[0,1,2,3,5].map(i => edgeMat(coverFinish, i))}
-          {coverFinish === 'original'
-            ? <meshBasicMaterial attach="material-4" color={FALLBACK_COLOR} />
-            : <meshStandardMaterial attach="material-4" color={FALLBACK_COLOR} roughness={coverRoughness} metalness={material.coverMetalness} />
-          }
-        </mesh>
+        coverFallback(FALLBACK_COLOR, coverGeo, coverZ, undefined, coverFinish, coverRoughness, material.coverMetalness)
       )}
 
-      {/* Back cover — rotation [0,π,0] makes face 5 (-z local) face outward */}
+      {/* Back cover */}
       {book.backCoverVisible && (
         book.backCoverImageUrl ? (
-          <Suspense fallback={
-            <mesh geometry={coverGeo} position={backZ} rotation={[0, Math.PI, 0]}>
-              {[0,1,2,3,4].map(i => edgeMat(coverFinish, i))}
-              {coverFinish === 'original'
-                ? <meshBasicMaterial attach="material-5" color={book.backCoverColor} />
-                : <meshStandardMaterial attach="material-5" color={book.backCoverColor} roughness={coverRoughness} metalness={material.coverMetalness} />
-              }
-            </mesh>
-          }>
+          <Suspense fallback={coverFallback(book.backCoverColor, coverGeo, backZ, [0, Math.PI, 0], coverFinish, coverRoughness, material.coverMetalness)}>
             <CoverWithTexture
               url={book.backCoverImageUrl}
               geo={coverGeo}
@@ -262,17 +228,11 @@ export function BookMesh() {
             />
           </Suspense>
         ) : (
-          <mesh geometry={coverGeo} position={backZ} rotation={[0, Math.PI, 0]}>
-            {[0,1,2,3,4].map(i => edgeMat(coverFinish, i))}
-            {coverFinish === 'original'
-              ? <meshBasicMaterial attach="material-5" color={book.backCoverColor} />
-              : <meshStandardMaterial attach="material-5" color={book.backCoverColor} roughness={coverRoughness} metalness={material.coverMetalness} />
-            }
-          </mesh>
+          coverFallback(book.backCoverColor, coverGeo, backZ, [0, Math.PI, 0], coverFinish, coverRoughness, material.coverMetalness)
         )
       )}
 
-      {/* Spine — face 5 (-z local → -x world after Y rotation) is the outward spine face */}
+      {/* Spine */}
       {book.spineImageUrl ? (
         <Suspense fallback={
           <mesh geometry={spineGeo} position={spinePos} rotation={spineRot}>
