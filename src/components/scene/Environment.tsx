@@ -21,17 +21,15 @@ export function SceneEnvironment() {
   const { scene } = useThree()
 
   useEffect(() => {
-    // For HDRI, DreiEnvironment manages the background itself; set null to let it take over.
-    // For transparent (legacy/export preset only), fall back to a neutral light color so
-    // the live view never goes completely white and the UI stays visible.
     if (backgroundType === 'solid') {
       scene.background = new THREE.Color(backgroundColor)
-    } else if (backgroundType === 'hdri') {
-      scene.background = null
-    } else {
-      // transparent or any unknown value — show a neutral fallback in live view
+    } else if (backgroundType !== 'hdri') {
+      // transparent or any unknown value — show a neutral fallback so the canvas
+      // never goes fully transparent in the live view
       scene.background = new THREE.Color('#f0ede8')
     }
+    // hdri: do NOT touch scene.background here — DreiEnvironment's background prop
+    // manages it. Setting null here causes a one-frame transparent flash.
   }, [backgroundType, backgroundColor, scene])
 
   if (backgroundType === 'hdri') {

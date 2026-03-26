@@ -60,10 +60,13 @@ function ExportBridge() {
       }
       gl.render(scene, camera)
       dataUrl = gl.domElement.toDataURL('image/png')
+    } catch (e) {
+      // Swallow — do NOT let this propagate out of useEffect.
+      // An uncaught error inside useEffect unmounts the entire React tree (blank page).
+      console.warn('[Export] Canvas capture failed:', e)
     } finally {
-      // Always restore — even if toDataURL throws (e.g. CORS-tainted canvas)
+      // Always restore regardless of success or failure
       gl.setSize(origW, origH, false)
-      // Force alpha=1 so the live canvas never becomes transparent
       gl.setClearColor(origClearColor, 1)
       scene.background = origBackground
     }
