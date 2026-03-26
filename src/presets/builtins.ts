@@ -11,7 +11,7 @@ const base: BookStoreState = {
   lighting: { ...defaultLightingConfig },
   material: { ...defaultMaterialConfig },
   export_: { ...defaultExportConfig },
-  environment: { preset: 'studio', backgroundType: 'solid', backgroundColor: '#f5f5f5', gradientFrom: '#e8e8e8', gradientTo: '#ffffff' },
+  environment: { preset: 'studio', backgroundType: 'solid', backgroundColor: '#1a1a1e', gradientFrom: '#1a1a1e', gradientTo: '#2e2e38' },
 }
 
 export const BUILT_IN_PRESETS: Record<string, BookStoreState> = {
@@ -34,7 +34,7 @@ export const BUILT_IN_PRESETS: Record<string, BookStoreState> = {
   },
   Minimal: {
     ...base,
-    environment: { ...base.environment, backgroundType: 'transparent' },
+    environment: { ...base.environment, backgroundType: 'solid', backgroundColor: '#f0ede8' },
     lighting: {
       ...base.lighting,
       lights: base.lighting.lights.map((l) =>

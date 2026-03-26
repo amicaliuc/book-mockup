@@ -1,3 +1,9 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Prevent body scroll — containment is handled per-panel with overscroll-contain */
+html, body {
+  overflow: hidden;
+  height: 100%;
+}

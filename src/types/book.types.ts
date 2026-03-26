@@ -10,8 +10,11 @@ export interface BookConfig {
   pageRoughness: number
   coverBevelSize: number
   backCoverVisible: boolean
-  coverImageFile: File | null
-  spineImageFile: File | null
+  backCoverColor: string
+  spineStyle: SpineStyle
+  coverImageUrl: string | null
+  spineImageUrl: string | null
+  backCoverImageUrl: string | null
 }
 
 export interface CameraPreset {
@@ -53,7 +56,7 @@ export interface LightingConfig {
   contactShadow: ContactShadowConfig
 }
 
-export type EnvironmentPreset = 'studio' | 'outdoor' | 'dramatic' | 'minimal'
+export type EnvironmentPreset = 'studio' | 'outdoor' | 'dramatic' | 'minimal' | 'apartment' | 'city' | 'dawn' | 'sunset' | 'desk'
 export type BackgroundType = 'hdri' | 'solid' | 'gradient' | 'transparent'
 
 export interface EnvironmentConfig {
@@ -64,7 +67,8 @@ export interface EnvironmentConfig {
   gradientTo: string
 }
 
-export type CoverFinish = 'matte' | 'gloss' | 'satin'
+export type CoverFinish = 'matte' | 'satin' | 'gloss' | 'original'
+export type SpineStyle = 'flat' | 'rounded' | 'hardcover'
 
 export interface MaterialConfig {
   coverRoughness: number

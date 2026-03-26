@@ -5,13 +5,11 @@ import './index.css'
 import { usePresetStore } from './store/presetStore'
 import { BUILT_IN_PRESETS } from './presets/builtins'
 
-// Load user presets from localStorage, then seed built-ins if not already present
+// Load user presets from localStorage, then always overwrite built-in presets with latest defaults
 const presetStore = usePresetStore.getState()
 presetStore.loadFromStorage()
 Object.entries(BUILT_IN_PRESETS).forEach(([name, state]) => {
-  if (!presetStore.presets[name]) {
-    presetStore.savePreset(name, state)
-  }
+  presetStore.savePreset(name, state)
 })
 presetStore.applyPreset('Studio')
 

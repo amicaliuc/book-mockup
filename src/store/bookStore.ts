@@ -35,6 +35,14 @@ export const useBookStore = create<BookStore>((set) => ({
   setEnvironment: (patch) => set((s) => ({ environment: { ...s.environment, ...patch } })),
   setMaterial: (patch) => set((s) => ({ material: { ...s.material, ...patch } })),
   setExport: (patch) => set((s) => ({ export_: { ...s.export_, ...patch } })),
-  applyPreset: (state) => set(state),
+  applyPreset: (state) => set((current) => ({
+    ...state,
+    book: {
+      ...state.book,
+      coverImageUrl: current.book.coverImageUrl,
+      spineImageUrl: current.book.spineImageUrl,
+      backCoverImageUrl: current.book.backCoverImageUrl,
+    },
+  })),
   reset: () => set(defaultState),
 }))

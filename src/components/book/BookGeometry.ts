@@ -1,37 +1,73 @@
 import * as THREE from 'three'
 import type { BookConfig } from '../../types/book.types'
 
-/** Front or back cover plane */
-export function createCoverGeometry(cfg: BookConfig): THREE.PlaneGeometry {
-  return new THREE.PlaneGeometry(cfg.width, cfg.height)
+const COVER_THICKNESS = 0.005
+
+/** Front or back cover — thin box so edges have visible thickness */
+export function createCoverGeometry(cfg: BookConfig): THREE.BoxGeometry {
+  return new THREE.BoxGeometry(cfg.width, cfg.height, COVER_THICKNESS)
 }
 
 /**
- * Spine as a partial cylinder arc.
- * UV.x is remapped to the arc's angular range so texture fills exactly.
+ * Flat spine panel — a BoxGeometry rotated 90° around Y in the mesh.
+ * Width (z-extent after rotation) spans outer face to outer face of both covers.
+ * Thickness (x-extent after rotation) bridges from the cover outer edge to the page
+ * block inner face, so there is no visible gap at the spine-cover-pageblock junction.
  */
-export function createSpineGeometry(cfg: BookConfig): THREE.CylinderGeometry {
-  const arcAngle = Math.PI * 0.18  // ~32° arc
-  const geo = new THREE.CylinderGeometry(
-    cfg.spineRadius, cfg.spineRadius,
-    cfg.height,
-    16,
-    1,
-    true,
-    -arcAngle / 2,
-    arcAngle,
-  )
-  // Remap UV.x so texture spans full spine width, not full cylinder circumference
+export function createFlatSpineGeometry(cfg: BookConfig): THREE.BoxGeometry {
+  const spineWidth = cfg.depth + COVER_THICKNESS * 2 + 0.003
+  const spineThickness = cfg.pageInset + COVER_THICKNESS / 2
+  return new THREE.BoxGeometry(spineWidth, cfg.height, spineThickness)
+}
+
+/**
+ * Hardcover spine — same flat panel but slightly taller (overhangs top/bottom)
+ * and thicker, like a case-bound hardcover binding board.
+ */
+export function createHardcoverSpineGeometry(cfg: BookConfig): THREE.BoxGeometry {
+  const OVERHANG = 0.02  // 2mm per side (scaled: 1 unit ≈ 100 mm)
+  const spineWidth = cfg.depth + COVER_THICKNESS * 2 + 0.003
+  const spineThickness = cfg.pageInset + COVER_THICKNESS / 2
+  return new THREE.BoxGeometry(spineWidth, cfg.height + OVERHANG * 2, spineThickness * 1.6)
+}
+
+/**
+ * Rounded spine — partial cylinder arc that bulges outward to the left,
+ * with endpoints flush against the front and back cover edges.
+ * Returns the geometry AND the cylinder center's x position.
+ */
+export function createRoundedSpineGeometry(cfg: BookConfig): {
+  geo: THREE.CylinderGeometry
+  xCenter: number
+} {
+  // Half-span in Z that the arc must bridge — extends to outer face of each cover
+  const d = cfg.depth / 2 + COVER_THICKNESS + 0.0015
+  // Desired outward bulge in -X (how far the spine protrudes beyond cover edge)
+  const bulge = 0.035
+  // Radius of the arc cylinder (derived from bulge and half-span)
+  const r = (d * d + bulge * bulge) / (2 * bulge)
+  // Half angle of the arc (sin(halfAngle) = d / r)
+  const halfAngle = Math.asin(d / r)
+  // Arc starts at -90° - halfAngle, spans 2×halfAngle (sweeps around -X side)
+  const thetaStart = -(Math.PI / 2 + halfAngle)
+  const thetaLength = 2 * halfAngle
+
+  const geo = new THREE.CylinderGeometry(r, r, cfg.height, 32, 1, true, thetaStart, thetaLength)
+
+  // Remap UV.x so texture spans the full arc (0 → back cover, 1 → front cover)
   const uvAttr = geo.attributes.uv as THREE.BufferAttribute
   const posAttr = geo.attributes.position as THREE.BufferAttribute
   for (let i = 0; i < uvAttr.count; i++) {
     const x = posAttr.getX(i)
     const z = posAttr.getZ(i)
     const theta = Math.atan2(x, z)
-    uvAttr.setX(i, (theta + arcAngle / 2) / arcAngle)
+    uvAttr.setX(i, (theta - thetaStart) / thetaLength)
   }
   uvAttr.needsUpdate = true
-  return geo
+
+  // Cylinder center sits slightly inside the book so the arc swings outward
+  const xCenter = -cfg.width / 2 - bulge + r
+  return { geo, xCenter }
 }
 
 /** Page block — inset from cover on all sides */

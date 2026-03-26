@@ -1,13 +1,13 @@
-import { Suspense, useEffect } from 'react'
+import { Suspense, useEffect, useRef } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
 import { useBookStore } from '../../store/bookStore'
+import { useExportTriggerStore } from '../../store/exportTriggerStore'
+import { RATIO_DIMENSIONS, RESOLUTION_MULTIPLIERS } from '../../config/export.config'
 import { BookMesh } from '../book/BookMesh'
 import { Lighting } from './Lighting'
 import { SceneEnvironment } from './Environment'
-import { useExport } from '../../hooks/useExport'
-import { useExportContext } from '../../context/ExportContext'
 
 function CameraSync() {
   const camStore = useBookStore((s) => s.camera)
@@ -27,9 +27,51 @@ function CameraSync() {
 }
 
 function ExportBridge() {
-  const { capture } = useExport()
-  const exportRef = useExportContext()
-  exportRef.current = capture
+  const { gl, scene, camera } = useThree()
+  const trigger = useExportTriggerStore((s) => s.trigger)
+  const prevTrigger = useRef(0)
+
+  useEffect(() => {
+    if (trigger <= prevTrigger.current) return
+    prevTrigger.current = trigger
+
+    const export_ = useBookStore.getState().export_
+    const multiplier = RESOLUTION_MULTIPLIERS[export_.resolution] ?? 1
+    const base = export_.ratio === 'custom'
+      ? { width: export_.customWidth, height: export_.customHeight }
+      : RATIO_DIMENSIONS[export_.ratio] ?? { width: 1200, height: 1200 }
+
+    const targetW = base.width * multiplier
+    const targetH = base.height * multiplier
+    const origW = gl.domElement.clientWidth
+    const origH = gl.domElement.clientHeight
+
+    // Save renderer state before export
+    const origClearColor = new THREE.Color()
+    const origClearAlpha = gl.getClearAlpha()
+    gl.getClearColor(origClearColor)
+    const origBackground = scene.background
+
+    gl.setSize(targetW, targetH, false)
+    if (export_.transparentBackground) {
+      scene.background = null
+      gl.setClearColor(0x000000, 0)
+    }
+    gl.render(scene, camera)
+
+    const dataUrl = gl.domElement.toDataURL('image/png')
+
+    // Restore renderer state
+    gl.setSize(origW, origH, false)
+    gl.setClearColor(origClearColor, origClearAlpha)
+    scene.background = origBackground
+
+    const a = document.createElement('a')
+    a.href = dataUrl
+    a.download = `book-mockup-${Date.now()}.png`
+    a.click()
+  }, [trigger, gl, scene, camera])
+
   return null
 }
 
@@ -44,7 +86,7 @@ export function BookScene() {
         near: camera.near,
         far: camera.far,
       }}
-      gl={{ preserveDrawingBuffer: true }}
+      gl={{ preserveDrawingBuffer: true, alpha: true }}
       className="w-full h-full"
     >
       <Suspense fallback={null}>

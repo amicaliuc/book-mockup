@@ -1,4 +1,5 @@
 import { useBookStore } from '../../../store/bookStore'
+import { useExportTriggerStore } from '../../../store/exportTriggerStore'
 import { SectionHeader } from '../primitives/SectionHeader'
 import { Dropdown } from '../primitives/Dropdown'
 import { Toggle } from '../primitives/Toggle'
@@ -18,10 +19,10 @@ const RATIO_OPTIONS: { label: string; value: ExportRatio }[] = [
   { label: 'Custom', value: 'custom' },
 ]
 
-interface Props { onExport: () => void }
-export function ExportSection({ onExport }: Props) {
+export function ExportSection() {
   const exp = useBookStore((s) => s.export_)
   const setExport = useBookStore((s) => s.setExport)
+  const fire = useExportTriggerStore((s) => s.fire)
 
   return (
     <div>
@@ -35,7 +36,7 @@ export function ExportSection({ onExport }: Props) {
       <div className="mb-4">
         <Toggle label="Transparent BG" value={exp.transparentBackground} onChange={(v) => setExport({ transparentBackground: v })} />
       </div>
-      <PillButton variant="primary" className="w-full flex justify-center" onClick={onExport}>
+      <PillButton variant="primary" className="w-full flex justify-center" onClick={fire}>
         Download PNG
       </PillButton>
     </div>
