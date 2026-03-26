@@ -15,7 +15,9 @@ export function createCoverGeometry(cfg: BookConfig): THREE.BoxGeometry {
  * block inner face, so there is no visible gap at the spine-cover-pageblock junction.
  */
 export function createFlatSpineGeometry(cfg: BookConfig): THREE.BoxGeometry {
-  const spineWidth = cfg.depth + COVER_THICKNESS * 2 + 0.003
+  // spineWidth must not exceed depth + COVER_THICKNESS*2 so face 1 (+z edge) stays inside
+  // the front cover geometry and is occluded by it (cover front face = depth/2 + COVER_THICKNESS + 0.001)
+  const spineWidth = cfg.depth + COVER_THICKNESS * 2 - 0.001
   const spineThickness = cfg.pageInset + COVER_THICKNESS / 2
   return new THREE.BoxGeometry(spineWidth, cfg.height, spineThickness)
 }
@@ -26,7 +28,7 @@ export function createFlatSpineGeometry(cfg: BookConfig): THREE.BoxGeometry {
  */
 export function createHardcoverSpineGeometry(cfg: BookConfig): THREE.BoxGeometry {
   const OVERHANG = 0.02  // 2mm per side (scaled: 1 unit ≈ 100 mm)
-  const spineWidth = cfg.depth + COVER_THICKNESS * 2 + 0.003
+  const spineWidth = cfg.depth + COVER_THICKNESS * 2 - 0.001
   const spineThickness = cfg.pageInset + COVER_THICKNESS / 2
   return new THREE.BoxGeometry(spineWidth, cfg.height + OVERHANG * 2, spineThickness * 1.6)
 }
