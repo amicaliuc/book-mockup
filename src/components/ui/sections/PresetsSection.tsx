@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { useBookStore } from '../../../store/bookStore'
 import { usePresetStore } from '../../../store/presetStore'
 import { SectionHeader } from '../primitives/SectionHeader'
@@ -6,15 +7,15 @@ import { PillButton } from '../primitives/PillButton'
 
 export function PresetsSection() {
   const [saveName, setSaveName] = useState('')
-  // Select only serializable state fields — NOT store action functions
-  const bookState = useBookStore((s) => ({
+  // useShallow prevents new object reference every render (fixes Zustand v5 getSnapshot loop)
+  const bookState = useBookStore(useShallow((s) => ({
     book: s.book,
     camera: s.camera,
     lighting: s.lighting,
     environment: s.environment,
     material: s.material,
     export_: s.export_,
-  }))
+  })))
   const presets = usePresetStore((s) => s.presets)
   const activePreset = usePresetStore((s) => s.activePreset)
   const savePreset = usePresetStore((s) => s.savePreset)
