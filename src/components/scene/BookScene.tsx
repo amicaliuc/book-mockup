@@ -45,50 +45,38 @@ function ExportBridge() {
     const targetW = base.width * multiplier
     const targetH = base.height * multiplier
 
+    // Snapshot state BEFORE the try so finally can always restore it
+    const origBackground = scene.background
+    const origClearColor = new THREE.Color()
+    const origClearAlpha = gl.getClearAlpha()
+    gl.getClearColor(origClearColor)
+    const origAspect = camera instanceof THREE.PerspectiveCamera ? camera.aspect : null
+
+    // Create render target outside try so finally can always dispose + reset it
+    const rt = new THREE.WebGLRenderTarget(targetW, targetH, {
+      format: THREE.RGBAFormat,
+      type: THREE.UnsignedByteType,
+    })
+
     let dataUrl: string | null = null
     try {
-      // Render into an off-screen WebGLRenderTarget — the live canvas is never
-      // resized or cleared, so the live view is completely unaffected.
-      const rt = new THREE.WebGLRenderTarget(targetW, targetH, {
-        format: THREE.RGBAFormat,
-        type: THREE.UnsignedByteType,
-      })
-
-      // Temporarily adjust camera aspect to match export dimensions
-      const origAspect = camera instanceof THREE.PerspectiveCamera ? camera.aspect : null
+      // Adjust camera aspect for target dimensions
       if (camera instanceof THREE.PerspectiveCamera) {
         camera.aspect = targetW / targetH
         camera.updateProjectionMatrix()
       }
-
-      // Handle transparent background
-      const origBackground = scene.background
-      const origClearColor = new THREE.Color()
-      const origClearAlpha = gl.getClearAlpha()
-      gl.getClearColor(origClearColor)
       if (export_.transparentBackground) {
         scene.background = null
         gl.setClearColor(0x000000, 0)
       }
 
-      // Render to off-screen target (does NOT touch the live canvas buffer)
+      // Render into the off-screen target — live canvas is never touched
       gl.setRenderTarget(rt)
-      gl.clear()
       gl.render(scene, camera)
-      gl.setRenderTarget(null)
 
-      // Restore all state immediately after render
-      scene.background = origBackground
-      gl.setClearColor(origClearColor, origClearAlpha)
-      if (origAspect !== null && camera instanceof THREE.PerspectiveCamera) {
-        camera.aspect = origAspect
-        camera.updateProjectionMatrix()
-      }
-
-      // Read pixels from the render target (WebGL origin is bottom-left, flip Y)
+      // Read pixels (WebGL origin is bottom-left; flip Y for PNG)
       const pixels = new Uint8Array(targetW * targetH * 4)
       gl.readRenderTargetPixels(rt, 0, 0, targetW, targetH, pixels)
-      rt.dispose()
 
       const flipped = new Uint8ClampedArray(targetW * targetH * 4)
       for (let y = 0; y < targetH; y++) {
@@ -103,6 +91,17 @@ function ExportBridge() {
       dataUrl = canvas2d.toDataURL('image/png')
     } catch (e) {
       console.warn('[Export] Failed:', e)
+    } finally {
+      // ALWAYS restore — if gl.setRenderTarget(rt) was called but render threw,
+      // setRenderTarget(null) must still run or R3F renders into the void (blank screen).
+      gl.setRenderTarget(null)
+      rt.dispose()
+      scene.background = origBackground
+      gl.setClearColor(origClearColor, origClearAlpha)
+      if (origAspect !== null && camera instanceof THREE.PerspectiveCamera) {
+        camera.aspect = origAspect
+        camera.updateProjectionMatrix()
+      }
     }
 
     if (dataUrl) {

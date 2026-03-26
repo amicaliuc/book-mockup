@@ -1,8 +1,7 @@
-import { ContactShadows } from '@react-three/drei'
 import { useBookStore } from '../../store/bookStore'
 
 export function Lighting() {
-  const { lights, contactShadow } = useBookStore((s) => s.lighting)
+  const { lights } = useBookStore((s) => s.lighting)
 
   return (
     <>
@@ -22,13 +21,6 @@ export function Lighting() {
         }
         return null
       })}
-      <ContactShadows
-        position={[0, -1.1, 0]}
-        opacity={contactShadow.opacity}
-        blur={contactShadow.blur}
-        far={contactShadow.far}
-        resolution={contactShadow.resolution}
-      />
     </>
   )
 }
