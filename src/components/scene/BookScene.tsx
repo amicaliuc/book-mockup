@@ -134,7 +134,14 @@ export function BookScene() {
       }}
       gl={{ preserveDrawingBuffer: true }}
       className="w-full h-full"
-      onCreated={({ gl }) => {
+      onCreated={({ gl, scene }) => {
+        // Ensure opaque clear from the start — Three.js creates context with alpha:true
+        // so without this, the canvas is transparent until Environment sets scene.background
+        gl.setClearColor(0x1a1a1e, 1)
+        if (!scene.background) {
+          scene.background = new THREE.Color('#1a1a1e')
+        }
+
         const canvas = gl.domElement
         let restoreTimer: ReturnType<typeof setTimeout> | null = null
 

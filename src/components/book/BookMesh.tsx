@@ -189,8 +189,8 @@ export function BookMesh() {
         <meshStandardMaterial attach="material-1" color="#1e1510" roughness={0.9} metalness={0} />
         {/* +y top edge: page lines looking from above */}
         <meshStandardMaterial attach="material-2" map={topEdgeTex} color={book.pageColor} roughness={book.pageRoughness} />
-        {/* -y bottom edge */}
-        <meshStandardMaterial attach="material-3" map={topEdgeTex} color={book.pageColor} roughness={book.pageRoughness} />
+        {/* -y bottom edge — emissive compensates for underside receiving little direct light */}
+        <meshStandardMaterial attach="material-3" map={topEdgeTex} color={book.pageColor} roughness={book.pageRoughness} emissive={book.pageColor} emissiveIntensity={0.35} />
         {/* +z front: plain (hidden behind cover) */}
         <meshStandardMaterial attach="material-4" color={book.pageColor} roughness={book.pageRoughness} />
         {/* -z back: plain (hidden behind back cover) */}

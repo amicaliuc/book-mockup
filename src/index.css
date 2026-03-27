@@ -7,3 +7,11 @@ html, body {
   overflow: hidden;
   height: 100%;
 }
+
+/* Fallback: Three.js/R3F always creates WebGL context with alpha:true (hardcoded).
+   If scene.background is ever null (during Suspense, HDRI loading, or StrictMode
+   remount), the canvas becomes transparent, showing the HTML bg-neutral-50 behind it.
+   This CSS background ensures the canvas always appears opaque. */
+canvas {
+  background-color: #1a1a1e;
+}

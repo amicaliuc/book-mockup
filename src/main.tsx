@@ -1,4 +1,3 @@
-import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import './index.css'
@@ -13,8 +12,7 @@ Object.entries(BUILT_IN_PRESETS).forEach(([name, state]) => {
 })
 presetStore.applyPreset('Studio')
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-)
+// StrictMode disabled: R3F v9 + React 19 StrictMode can cause blank canvas.
+// StrictMode double-mounts components; the WebGL context created on first mount
+// gets destroyed, and the remount may receive a context with default attributes.
+ReactDOM.createRoot(document.getElementById('root')!).render(<App />)
