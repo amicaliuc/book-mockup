@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useRef } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
@@ -120,9 +120,12 @@ function ExportBridge() {
 
 export function BookScene() {
   const camera = useBookStore((s) => s.camera)
+  // Incremented when WebGL context loss is unrecoverable — forces Canvas remount
+  const [sceneKey, setSceneKey] = useState(0)
 
   return (
     <Canvas
+      key={sceneKey}
       camera={{
         position: camera.position,
         fov: camera.fov,
@@ -131,6 +134,24 @@ export function BookScene() {
       }}
       gl={{ preserveDrawingBuffer: true }}
       className="w-full h-full"
+      onCreated={({ gl }) => {
+        const canvas = gl.domElement
+        let restoreTimer: ReturnType<typeof setTimeout> | null = null
+
+        canvas.addEventListener('webglcontextlost', (e) => {
+          // preventDefault() tells the browser to attempt automatic context restoration
+          e.preventDefault()
+          // If not restored within 1.5 s, force a full Canvas remount
+          restoreTimer = setTimeout(() => setSceneKey((k) => k + 1), 1500)
+        })
+
+        canvas.addEventListener('webglcontextrestored', () => {
+          if (restoreTimer !== null) {
+            clearTimeout(restoreTimer)
+            restoreTimer = null
+          }
+        })
+      }}
     >
       <Suspense fallback={null}>
         <CameraSync />
