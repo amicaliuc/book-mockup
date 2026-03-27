@@ -2,10 +2,12 @@ import { create } from 'zustand'
 
 interface ExportTriggerStore {
   trigger: number
-  fire: () => void
+  transparentBackground: boolean
+  fire: (transparentBackground: boolean) => void
 }
 
 export const useExportTriggerStore = create<ExportTriggerStore>((set) => ({
   trigger: 0,
-  fire: () => set((s) => ({ trigger: s.trigger + 1 })),
+  transparentBackground: false,
+  fire: (transparentBackground) => set((s) => ({ trigger: s.trigger + 1, transparentBackground })),
 }))

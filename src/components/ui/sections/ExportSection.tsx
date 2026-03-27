@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useBookStore } from '../../../store/bookStore'
 import { useExportTriggerStore } from '../../../store/exportTriggerStore'
 import { SectionHeader } from '../primitives/SectionHeader'
@@ -24,6 +25,11 @@ export function ExportSection() {
   const setExport = useBookStore((s) => s.setExport)
   const fire = useExportTriggerStore((s) => s.fire)
 
+  // Transparent BG is local state — it ONLY affects the export render, never the live scene.
+  // Keeping it out of the global store prevents any possibility of toggling it causing
+  // a re-render of R3F components or a scene state change.
+  const [transparentBackground, setTransparentBackground] = useState(false)
+
   return (
     <div>
       <SectionHeader label="Export" />
@@ -34,9 +40,17 @@ export function ExportSection() {
         <Dropdown value={exp.resolution} options={RESOLUTION_OPTIONS} onChange={(v) => setExport({ resolution: v })} />
       </div>
       <div className="mb-4">
-        <Toggle label="Transparent BG" value={exp.transparentBackground} onChange={(v) => setExport({ transparentBackground: v })} />
+        <Toggle
+          label="Transparent BG"
+          value={transparentBackground}
+          onChange={setTransparentBackground}
+        />
       </div>
-      <PillButton variant="primary" className="w-full flex justify-center" onClick={fire}>
+      <PillButton
+        variant="primary"
+        className="w-full flex justify-center"
+        onClick={() => fire(transparentBackground)}
+      >
         Download PNG
       </PillButton>
     </div>

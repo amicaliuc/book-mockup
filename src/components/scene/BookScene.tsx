@@ -37,6 +37,9 @@ function ExportBridge() {
     prevTrigger.current = trigger
 
     const export_ = useBookStore.getState().export_
+    // transparentBackground comes from the trigger store (set at fire()-time from local UI state)
+    // so it is never connected to any reactive store subscription in R3F components
+    const transparentBackground = useExportTriggerStore.getState().transparentBackground
     const multiplier = RESOLUTION_MULTIPLIERS[export_.resolution] ?? 1
     const base = export_.ratio === 'custom'
       ? { width: export_.customWidth, height: export_.customHeight }
@@ -65,7 +68,7 @@ function ExportBridge() {
         camera.aspect = targetW / targetH
         camera.updateProjectionMatrix()
       }
-      if (export_.transparentBackground) {
+      if (transparentBackground) {
         scene.background = null
         gl.setClearColor(0x000000, 0)
       }
@@ -126,7 +129,7 @@ export function BookScene() {
         near: camera.near,
         far: camera.far,
       }}
-
+      gl={{ preserveDrawingBuffer: true }}
       className="w-full h-full"
     >
       <Suspense fallback={null}>
