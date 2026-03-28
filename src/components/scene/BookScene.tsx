@@ -55,11 +55,17 @@ function ExportBridge() {
     gl.getClearColor(origClearColor)
     const origAspect = camera instanceof THREE.PerspectiveCamera ? camera.aspect : null
 
-    // Create render target outside try so finally can always dispose + reset it
+    // Create render target outside try so finally can always dispose + reset it.
+    // texture.colorSpace = SRGBColorSpace makes the renderer apply the same
+    // linear→sRGB conversion it does for the live canvas — without this, the
+    // export is in linear space (visibly darker, less contrast, washed-out).
+    // samples: 4 enables MSAA for the same antialiasing quality as the screen.
     const rt = new THREE.WebGLRenderTarget(targetW, targetH, {
       format: THREE.RGBAFormat,
       type: THREE.UnsignedByteType,
+      samples: 4,
     })
+    rt.texture.colorSpace = THREE.SRGBColorSpace
 
     let dataUrl: string | null = null
     try {
